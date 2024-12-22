@@ -76,7 +76,9 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
-                identifier = (DOMAIN, info["title"])
+                ip_address = user_input["ip_address"]
+                port = user_input["port"]
+
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidAuth:
@@ -85,7 +87,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                await self.async_set_unique_id(identifier)
+                await self.async_set_unique_id(f"{DOMAIN}_{ip_address}_{port}")
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(title=info["title"], data=user_input)
 
