@@ -3,7 +3,7 @@ import logging
 import random
 from homeassistant.helpers.entity import Entity
 from .const import DOMAIN
-from pyModbusTCP.client import ModbusClient
+from pymodbus.client import ModbusTcpClient
 from . import PlexloggerEntry
 
 
