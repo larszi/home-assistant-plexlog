@@ -389,9 +389,9 @@ class BatteryUsage(Entity):
     def icon(self):
         """Return the icon to use in the frontend."""
         if self._state is not None and self._state < 0:
-            return "mdi:battery-arrow-up"
-        else:
             return "mdi:battery-arrow-down"
+        else:
+            return "mdi:battery-arrow-up"
     
     @property
     def device_info(self):
@@ -412,6 +412,7 @@ class BatteryUsage(Entity):
         # If batt_reg_one is != 0, then the battery charging, amount will be the difference between reg_one and reg_two
         else:
             battery_usage = result_reg_one.registers[0] - result_reg_two.registers[0]
+            self._state = battery_usage
 
         # Update the global variable for calculating the total battery usage
         global battery_usage_global
