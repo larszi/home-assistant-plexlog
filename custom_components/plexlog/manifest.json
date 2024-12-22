@@ -1,0 +1,15 @@
+{
+  "domain": "plexlog",
+  "name": "Plexlog",
+  "codeowners": [
+    "@larszi"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/larszi/home-assistant-plexlog",
+  "issue_tracker": "https://github.com/larszi/home-assistant-plexlog/issues",
+  "iot_class": "local_polling",
+  "requirements": [
+    "pymodbus==3.8.2"
+  ],
+  "version": "1.0.0"
+}
