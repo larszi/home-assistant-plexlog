@@ -22,7 +22,9 @@ async def async_setup_entry(hass, entry: PlexloggerEntry, async_add_entities):
     _LOGGER.info("Setting up the Plexlogger sensors" )
 
     async_add_entities([SolarPower(entry)])
+    async_add_entities([SolarPowerReg2(entry)])
     async_add_entities([CurrentPowerUsage(entry)])
+    async_add_entities([CurrentPowerUsageReg1(entry)])
     async_add_entities([BatteryState(entry)])
     async_add_entities([NetworkUsage(entry)])
     async_add_entities([BatteryUsage(entry)])
@@ -80,6 +82,55 @@ class SolarPower(Entity):
         global solar_power_global
         solar_power_global = self._state
 
+class SolarPowerReg2(Entity):
+    """Representation of a Solar Sensor."""
+
+    @property
+    def icon(self):
+        """Return the icon to use in the frontend."""
+        return "mdi:solar-power-variant"
+
+    def __init__(self,entry):
+        """Initialize the sensor."""
+        self._state = None
+        self._entry = entry
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return "Current Solar Power Bank 2"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return "W"
+
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
+        }
+
+    @property
+    def unique_id(self):
+        """Return a unique ID."""
+        return "solarpowerreg2"
+
+    @property
+    def entity_info(self):
+        """Return entity specific information."""
+        return {"foo": "bar"}
+
+    async def async_update(self):
+        """Fetch new state data for the sensor."""
+        result = self._entry.runtime_data._modbus_client.read_input_registers(1, count=1)
+        self._state = result.registers[0]
 
 class CurrentPowerUsage(Entity):
     """Representation of PowerUsage Sensor."""
@@ -134,6 +185,55 @@ class CurrentPowerUsage(Entity):
             _LOGGER.error("Failed to read current power usage from Modbus Client")
             self._state = None
 
+class CurrentPowerUsageReg1(Entity):
+    """Representation of PowerUsage Sensor."""
+
+    def __init__(self, entry):
+        """Initialize the sensor."""
+        self._state = None
+        self._entry = entry
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return "Current Power Usage Reg 1"
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return "W"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def unique_id(self):
+        """Return a unique ID."""
+        return "current_power_usage_reg_1"
+
+    @property
+    def icon(self):
+        """Return the icon to use in the frontend."""
+        return "mdi:flash"
+
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
+        }
+
+    async def async_update(self):
+        """Fetch new state data for the sensor."""
+        result = self._entry.runtime_data._modbus_client.read_input_registers(2, count=1)
+
+        if result is not None:
+            self._state = result.registers[0]
+        else:
+            _LOGGER.error("Failed to read current power usage from Modbus Client")
+            self._state = None
 
 class BatteryState(Entity):
     """Representation of Battery State Sensor."""
@@ -303,8 +403,15 @@ class BatteryUsage(Entity):
     async def async_update(self):
         """Fetch new state data for the sensor."""
         # Update the state from the API
-        result = self._entry.runtime_data._modbus_client.read_input_registers(38, count=1)
-        self._state = result.registers[0]
+        result_reg_one = self._entry.runtime_data._modbus_client.read_input_registers(37, count=1)
+        result_reg_two = self._entry.runtime_data._modbus_client.read_input_registers(38, count=1)
+
+        # If batt_reg_one is 0, then the battery discharging, amount will be in reg_two
+        if result_reg_one.registers[0] == 0:
+            self._state = -battery_usage
+        # If batt_reg_one is != 0, then the battery charging, amount will be the difference between reg_one and reg_two
+        else:
+            battery_usage = result_reg_one.registers[0] - result_reg_two.registers[0]
 
         # Update the global variable for calculating the total battery usage
         global battery_usage_global
