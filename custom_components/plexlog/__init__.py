@@ -7,7 +7,7 @@ from datetime import timedelta
 import logging
 
 
-from homeassistant.components.plexlog.modbusCoordinator import ModbusCoordinator
+from . import ModbusCoordinator
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from homeassistant.components.sensor import Any, SensorEntity
