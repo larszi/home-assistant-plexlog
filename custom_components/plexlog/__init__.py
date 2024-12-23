@@ -7,7 +7,7 @@ from datetime import timedelta
 import logging
 
 
-from . import ModbusCoordinator
+from .modbusCoordinator import ModbusCoordinator
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from homeassistant.components.sensor import Any, SensorEntity
