@@ -20,18 +20,18 @@ class Plexlogger:
         self._id = ip_address.lower()
         self.online = True
 
-        modbusClient = ModbusTcpClient(host="192.168.153.20", port=503)
+        modbusClient = ModbusTcpClient(host=ip_address, port=port)
         modbusClient.connect()
 
         if modbusClient.is_socket_open():
             _LOGGER.info("Successfully connected to Modbus Client at %s:%s", ip_address, port)
             self.online = True
-            self._modbus_client = modbusClient
+            modbusClient.close()
 
         else:
             _LOGGER.error("Failed to connect to Modbus Client at %s:%s", ip_address, port)
             self.online = False
-            self._modbus_client = None
+            
 
     @property
     def hub_id(self) -> str:

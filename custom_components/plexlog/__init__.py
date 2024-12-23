@@ -38,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PlexloggerEntry) -> bool
     entry.runtime_data = plexlogger.Plexlogger(hass, entry.data["ip_address"], entry.data["port"])
 
 
-    if entry.runtime_data._modbus_client is None:
+    if entry.runtime_data.online is None:
         return False
 
     device_registry = dr.async_get(hass)
