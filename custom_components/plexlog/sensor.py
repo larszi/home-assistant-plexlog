@@ -1,6 +1,12 @@
 from datetime import timedelta
 import logging
 import random
+
+from homeassistant.components.actiontec.model import Device
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.core import callback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from . import ModbusCoordinator
 from homeassistant.helpers.entity import Entity
 from .const import DOMAIN
 from pymodbus.client import ModbusTcpClient
@@ -21,144 +27,146 @@ async def async_setup_entry(hass, entry: PlexloggerEntry, async_add_entities):
     """Set up the Plexlogger sensors."""
     _LOGGER.info("Setting up the Plexlogger sensors" )
 
-    async_add_entities([SolarPower(entry)])
-    async_add_entities([SolarPowerReg2(entry)])
-    async_add_entities([CurrentPowerUsage(entry)])
-    async_add_entities([CurrentPowerUsageReg1(entry)])
-    async_add_entities([BatteryState(entry)])
-    async_add_entities([NetworkUsage(entry)])
-    async_add_entities([BatteryUsage(entry)])
+    _LOGGER.info("Setting up ModbusCoordinator with entrt %s", entry.entry_id)  
+    coordinator: ModbusCoordinator = hass.data[DOMAIN][
+            entry.entry_id
+        ].coordinator
+    
+    entities = [
+        SolarPowerRegOne(coordinator, entry),
+        SolarPowerRegTwo(coordinator, entry),
+        CurrentPowerUsageOne(coordinator, entry),
+        CurrentPowerUsageTwo(coordinator, entry),
+        BatteryState(coordinator, entry),
+        BatteryUsage(coordinator, entry),
+        NetworkUsage(coordinator, entry),
+    ]
+    async_add_entities(entities)
 
-class SolarPower(Entity):
-    """Representation of a Solar Sensor."""
+
+
+class SolarPowerRegOne(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
+
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
+        self._state = None
 
     @property
     def icon(self):
         """Return the icon to use in the frontend."""
         return "mdi:solar-power-variant"
 
-    def __init__(self,entry):
-        """Initialize the sensor."""
-        self._state = None
-        self._entry = entry
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "Current Solar Power"
-
     @property
     def state(self):
         """Return the state of the sensor."""
         return self._state
 
     @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Solar Power Register One"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        return f"{DOMAIN}-solar_power_reg_one"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
+
+    @property
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-
+    
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "unique_device_id"
-
     @property
     def entity_info(self):
         """Return entity specific information."""
-        return {"foo": "bar"}
+        return {"Register": "0"}
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(0)
+        self.async_write_ha_state()
 
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        result = self._entry.runtime_data._modbus_client.read_input_registers(0, count=1)
-        self._state = result.registers[0]
-        # Update the global variable for calculating the total power usage
-        global solar_power_global
-        solar_power_global = self._state
+class SolarPowerRegTwo(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
 
-class SolarPowerReg2(Entity):
-    """Representation of a Solar Sensor."""
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
+        self._state = None
 
     @property
     def icon(self):
         """Return the icon to use in the frontend."""
         return "mdi:solar-power-variant"
 
-    def __init__(self,entry):
-        """Initialize the sensor."""
-        self._state = None
-        self._entry = entry
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "Current Solar Power Bank 2"
-
     @property
     def state(self):
         """Return the state of the sensor."""
         return self._state
 
     @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Solar Power Register Two"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        # All entities must have a unique id.  Think carefully what you want this to be as
+        # changing it later will cause HA to create new entities.
+        return f"{DOMAIN}-solar_power_reg_two"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
+
+    @property
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-
+    
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "solarpowerreg2"
-
     @property
     def entity_info(self):
         """Return entity specific information."""
-        return {"foo": "bar"}
+        return {"Register": "1"}
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(1)
+        self.async_write_ha_state()
 
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        result = self._entry.runtime_data._modbus_client.read_input_registers(1, count=1)
-        self._state = result.registers[0]
+class CurrentPowerUsageOne(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
 
-class CurrentPowerUsage(Entity):
-    """Representation of PowerUsage Sensor."""
-
-    def __init__(self, entry):
-        """Initialize the sensor."""
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
         self._state = None
-        self._entry = entry
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "Current Power Usage"
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return "W"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "current_power_usage"
 
     @property
     def icon(self):
@@ -166,52 +174,57 @@ class CurrentPowerUsage(Entity):
         return "mdi:flash"
 
     @property
-    def device_info(self):
-        """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
-        }
-
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        result = self._entry.runtime_data._modbus_client.read_input_registers(3, count=1)
-
-        if result is not None:
-            self._state = result.registers[0]
-            # Update the global variable for calculating the total power usage
-            global current_power_usage_global
-            current_power_usage_global = self._state
-        else:
-            _LOGGER.error("Failed to read current power usage from Modbus Client")
-            self._state = None
-
-class CurrentPowerUsageReg1(Entity):
-    """Representation of PowerUsage Sensor."""
-
-    def __init__(self, entry):
-        """Initialize the sensor."""
-        self._state = None
-        self._entry = entry
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "Current Power Usage Reg 1"
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return "W"
-
-    @property
     def state(self):
         """Return the state of the sensor."""
         return self._state
 
     @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "current_power_usage_reg_1"
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Current Power Usage Register One"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        # All entities must have a unique id.  Think carefully what you want this to be as
+        # changing it later will cause HA to create new entities.
+        return f"{DOMAIN}-current_power_usage_one"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return "W"
+    
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
+        }
+    @property
+    def entity_info(self):
+        """Return entity specific information."""
+        return {"Register": "2"}
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(2)
+        self.async_write_ha_state()
+
+class CurrentPowerUsageTwo(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
+
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
+        self._state = None
 
     @property
     def icon(self):
@@ -219,29 +232,57 @@ class CurrentPowerUsageReg1(Entity):
         return "mdi:flash"
 
     @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Current Power Usage Register Two"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        # All entities must have a unique id.  Think carefully what you want this to be as
+        # changing it later will cause HA to create new entities.
+        return f"{DOMAIN}-current_power_usage_two"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return "W"
+    
+    @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+    @property
+    def entity_info(self):
+        """Return entity specific information."""
+        return {"Register": "3"}
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(3)
+        self.async_write_ha_state()
 
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        result = self._entry.runtime_data._modbus_client.read_input_registers(2, count=1)
+class BatteryState(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
 
-        if result is not None:
-            self._state = result.registers[0]
-        else:
-            _LOGGER.error("Failed to read current power usage from Modbus Client")
-            self._state = None
-
-class BatteryState(Entity):
-    """Representation of Battery State Sensor."""
-
-    def __init__(self, entry):
-        """Initialize the sensor."""
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
         self._state = None
-        self._entry = entry
 
     @property
     def icon(self):
@@ -270,68 +311,55 @@ class BatteryState(Entity):
                 return "mdi:battery-10"
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "Battery State"
-    
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return "%"
-
-    @property
     def state(self):
         """Return the state of the sensor."""
         return self._state
 
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Battery State"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        return f"{DOMAIN}-battery_state"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return "%"
+    
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
-
     @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "battery_state"
-
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        result = self._entry.runtime_data._modbus_client.read_input_registers(36, count=1)
-        if result is not None:
-            self._state = result.registers[0]
-        else:
-            _LOGGER.error("Failed to read battery state from Modbus Client")
-        
-
-class NetworkUsage(Entity):
-    """Representation of Network Usage Sensor."""
-
-    def __init__(self, entry):
-        """Initialize the sensor."""
-        self._state = None
-        self._entry = entry
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "Network Usage"
+    def entity_info(self):
+        """Return entity specific information."""
+        return {"Register": "36"}
     
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return "W"
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(36)
+        self.async_write_ha_state()
 
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
+class NetworkUsage(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
 
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "network_usage"
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
+        self._state = None
 
     @property
     def icon(self):
@@ -342,56 +370,31 @@ class NetworkUsage(Entity):
             return "mdi:transmission-tower-export"
 
     @property
-    def device_info(self):
-        """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
-        }
-
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        global current_power_usage_global, solar_power_global, battery_usage_global
-        if current_power_usage_global is not None and solar_power_global is not None and battery_usage_global is not None:
-            self._state = current_power_usage_global - solar_power_global - battery_usage_global
-        else:
-            self._state = None
-
-
-class BatteryUsage(Entity):
-    """Representation of Battery Usage Sensor."""
-
-    def __init__(self, entry):
-        """Initialize the BatteryUsage sensor."""
-        self._state = None
-        self._entry = entry
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
 
     @property
-    def name(self):
-        """Return the name of the BatteryUsage sensor."""
-        return "Battery Usage"
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Network Usage"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        # All entities must have a unique id.  Think carefully what you want this to be as
+        # changing it later will cause HA to create new entities.
+        return f"{DOMAIN}-network_usage"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
 
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-
-    @property
-    def state(self):
-        """Return the state of the BatteryUsage sensor."""
-        return self._state
-
-    @property
-    def unique_id(self):
-        """Return a unique ID."""
-        return "battery_usage"
-
-    @property
-    def icon(self):
-        """Return the icon to use in the frontend."""
-        if self._state is not None and self._state < 0:
-            return "mdi:battery-arrow-down"
-        else:
-            return "mdi:battery-arrow-up"
     
     @property
     def device_info(self):
@@ -399,22 +402,75 @@ class BatteryUsage(Entity):
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+    @property
+    def entity_info(self):
+        """Return entity specific information."""
+        return {"Register": "100"}
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(100)
+        self.async_write_ha_state()        
 
-    async def async_update(self):
-        """Fetch new state data for the sensor."""
-        # Update the state from the API
-        result_reg_one = self._entry.runtime_data._modbus_client.read_input_registers(37, count=1)
-        result_reg_two = self._entry.runtime_data._modbus_client.read_input_registers(38, count=1)
+class BatteryUsage(CoordinatorEntity, SensorEntity):
+    """Implementation of a sensor."""
 
-        # If batt_reg_one is 0, then the battery discharging, amount will be in reg_two
-        if result_reg_one.registers[0] == 0:
-            self._state = -battery_usage
-        # If batt_reg_one is != 0, then the battery charging, amount will be the difference between reg_one and reg_two
+    def __init__(self, coordinator: ModbusCoordinator, device) -> None:
+        """Initialise sensor."""
+        super().__init__(coordinator)
+        self._entry = device
+        self._state = None
+
+
+    @property
+    def icon(self):
+        """Return the icon to use in the frontend."""
+        if self._state is not None and self._state < 0:
+            return "mdi:battery-arrow-up"
         else:
-            battery_usage = result_reg_one.registers[0] - result_reg_two.registers[0]
-            self._state = battery_usage
+            return "mdi:battery-arrow-down"
 
-        # Update the global variable for calculating the total battery usage
-        global battery_usage_global
-        battery_usage_global = self._state
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
 
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Battery Usage"
+
+    @property
+    def unique_id(self) -> str:
+        """Return unique id."""
+        # All entities must have a unique id.  Think carefully what you want this to be as
+        # changing it later will cause HA to create new entities.
+        return f"{DOMAIN}-battery_usage"
+    
+    @property
+    def device_class(self) -> str:
+        """Return device class."""
+        return SensorDeviceClass.POWER
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return "W"
+    
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
+        }
+    @property
+    def entity_info(self):
+        """Return entity specific information."""
+        return {"Register": "101"}
+    
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Update sensor with latest data from coordinator."""
+        self._state = self.coordinator.getRegisterValue(101)
+        self.async_write_ha_state() 
