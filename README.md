@@ -3,7 +3,6 @@
 [![hacs_badge](https://img.shields.io/badge/hacs-Default-41BDF5.svg)](https://hacs.xyz)
 [![GitHub](https://img.shields.io/github/license/larszi/home-assistant-plexlog?color=green)](https://github.com/larszi/home-assistant-plexlog/blob/main/LICENSE)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/larszi/home-assistant-plexlog?color=green)](https://github.com/larszi/home-assistant-plexlog/releases/latest)
-[![GitHub all releases](https://img.shields.io/github/downloads/larszi/home-assistant-plexlog/total?color=blue&label=downloads)](https://tooomm.github.io/github-release-stats/?username=larszi&repository=home-assistant-plexlog)
 
 ---
 This integration allows Home Assistant to interface with [Plexlogs Devices](https://plexlog.de/), enabling local network readout of Plexlogs data 🎉. 
