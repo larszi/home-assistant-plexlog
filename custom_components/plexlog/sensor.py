@@ -13,7 +13,6 @@ from pymodbus.client import ModbusTcpClient
 from . import PlexloggerEntry
 
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -23,15 +22,14 @@ current_power_usage_global = None
 solar_power_global = None
 battery_usage_global = None
 
+
 async def async_setup_entry(hass, entry: PlexloggerEntry, async_add_entities):
     """Set up the Plexlogger sensors."""
-    _LOGGER.info("Setting up the Plexlogger sensors" )
+    _LOGGER.info("Setting up the Plexlogger sensors")
 
-    _LOGGER.info("Setting up ModbusCoordinator with entrt %s", entry.entry_id)  
-    coordinator: ModbusCoordinator = hass.data[DOMAIN][
-            entry.entry_id
-        ].coordinator
-    
+    _LOGGER.info("Setting up ModbusCoordinator with entrt %s", entry.entry_id)
+    coordinator: ModbusCoordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+
     entities = [
         SolarPowerRegOne(coordinator, entry),
         SolarPowerRegTwo(coordinator, entry),
@@ -44,7 +42,6 @@ async def async_setup_entry(hass, entry: PlexloggerEntry, async_add_entities):
     async_add_entities(entities)
 
 
-
 class SolarPowerRegOne(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
 
@@ -53,6 +50,7 @@ class SolarPowerRegOne(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = device
         self._state = None
+        _LOGGER.debug("Creating Solar Power Register One sensor")
 
     @property
     def icon(self):
@@ -62,6 +60,7 @@ class SolarPowerRegOne(CoordinatorEntity, SensorEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
+        _LOGGER.debug("Getting State for Solar Power Register One state")
         return self._state
 
     @property
@@ -73,7 +72,7 @@ class SolarPowerRegOne(CoordinatorEntity, SensorEntity):
     def unique_id(self) -> str:
         """Return unique id."""
         return f"{DOMAIN}-solar_power_reg_one"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -83,23 +82,30 @@ class SolarPowerRegOne(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "0"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
+        _LOGGER.debug("Callback Updating Solar Power Register One getRegisterValue(0)")
         self._state = self.coordinator.getRegisterValue(0)
+        _LOGGER.debug(
+            "Callback Solar Power Register One state: %s, writing to HA", self._state
+        )
         self.async_write_ha_state()
+        _LOGGER.debug("Callback Solar Power Register One state written to HA")
+
 
 class SolarPowerRegTwo(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
@@ -131,7 +137,7 @@ class SolarPowerRegTwo(CoordinatorEntity, SensorEntity):
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-solar_power_reg_two"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -141,23 +147,25 @@ class SolarPowerRegTwo(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "1"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._state = self.coordinator.getRegisterValue(1)
         self.async_write_ha_state()
+
 
 class CurrentPowerUsageOne(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
@@ -189,7 +197,7 @@ class CurrentPowerUsageOne(CoordinatorEntity, SensorEntity):
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-current_power_usage_one"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -199,23 +207,25 @@ class CurrentPowerUsageOne(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "2"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._state = self.coordinator.getRegisterValue(2)
         self.async_write_ha_state()
+
 
 class CurrentPowerUsageTwo(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
@@ -247,7 +257,7 @@ class CurrentPowerUsageTwo(CoordinatorEntity, SensorEntity):
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-current_power_usage_two"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -257,23 +267,25 @@ class CurrentPowerUsageTwo(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "3"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._state = self.coordinator.getRegisterValue(3)
         self.async_write_ha_state()
+
 
 class BatteryState(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
@@ -324,7 +336,7 @@ class BatteryState(CoordinatorEntity, SensorEntity):
     def unique_id(self) -> str:
         """Return unique id."""
         return f"{DOMAIN}-battery_state"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -334,23 +346,25 @@ class BatteryState(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "%"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "36"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._state = self.coordinator.getRegisterValue(36)
         self.async_write_ha_state()
+
 
 class NetworkUsage(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
@@ -385,7 +399,7 @@ class NetworkUsage(CoordinatorEntity, SensorEntity):
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-network_usage"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -395,23 +409,25 @@ class NetworkUsage(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "100"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._state = self.coordinator.getRegisterValue(100)
-        self.async_write_ha_state()        
+        self.async_write_ha_state()
+
 
 class BatteryUsage(CoordinatorEntity, SensorEntity):
     """Implementation of a sensor."""
@@ -421,7 +437,6 @@ class BatteryUsage(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._entry = device
         self._state = None
-
 
     @property
     def icon(self):
@@ -447,7 +462,7 @@ class BatteryUsage(CoordinatorEntity, SensorEntity):
         # All entities must have a unique id.  Think carefully what you want this to be as
         # changing it later will cause HA to create new entities.
         return f"{DOMAIN}-battery_usage"
-    
+
     @property
     def device_class(self) -> str:
         """Return device class."""
@@ -457,20 +472,21 @@ class BatteryUsage(CoordinatorEntity, SensorEntity):
     def unit_of_measurement(self):
         """Return the unit of measurement."""
         return "W"
-    
+
     @property
     def device_info(self):
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.runtime_data._ip_address)},
         }
+
     @property
     def entity_info(self):
         """Return entity specific information."""
         return {"Register": "101"}
-    
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._state = self.coordinator.getRegisterValue(101)
-        self.async_write_ha_state() 
+        self.async_write_ha_state()

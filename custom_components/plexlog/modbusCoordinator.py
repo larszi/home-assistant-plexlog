@@ -50,7 +50,7 @@ class ModbusCoordinator(DataUpdateCoordinator):
         This method will be called automatically during
         coordinator.async_config_entry_first_refresh.
         """
-
+        _LOGGER.debug("Updating _async_setup ModbusCoordinator")
         try:
             if not self._modbusClient.connected:
                 _LOGGER.error("Modbus client is not connected")
@@ -60,9 +60,9 @@ class ModbusCoordinator(DataUpdateCoordinator):
 
 
     async def _async_update_data(self):
-        #TODO: this need a bit of clean up
-        """Fetch data from API endpoint. """
-
+        # TODO: this need a bit of clean up
+        """Fetch data from API endpoint."""
+        _LOGGER.debug("Updating _async_update_data ModbusCoordinator")
         try:
             # Try to read old power usage, this will fail if it's the first time we read data
             old_power_usage = None
@@ -98,6 +98,10 @@ class ModbusCoordinator(DataUpdateCoordinator):
             power_usage = current_power_usage - current_solar_power  - abs(battery_usage)
             self._data[100] = power_usage
             self._data[101] = -battery_usage
+
+            _LOGGER.debug("Update from Modbus currentPowerUsage: %s", power_usage)
+            _LOGGER.debug("Update from Modbus batteryUsage: %s", battery_usage)
+            _LOGGER.debug("Update from Modbus solarPower: %s", current_solar_power)
 
         except Exception as e:
             _LOGGER.error("An error occurred e: %s", e)
