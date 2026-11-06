@@ -10,7 +10,6 @@ import logging
 from .modbusCoordinator import ModbusCoordinator
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
-from homeassistant.components.sensor import Any, SensorEntity
 from .const import DOMAIN
 from homeassistant.core import callback
 from homeassistant.config_entries import ConfigEntry

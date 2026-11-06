@@ -1,15 +1,11 @@
 from datetime import timedelta
 import logging
-import random
 
-from homeassistant.components.actiontec.model import Device
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import ModbusCoordinator
-from homeassistant.helpers.entity import Entity
 from .const import DOMAIN
-from pymodbus.client import ModbusTcpClient
 from . import PlexloggerEntry
 
 
